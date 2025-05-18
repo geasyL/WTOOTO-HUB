@@ -158,4 +158,95 @@ local function createToggle(parent, labelText, posY, callback)
 	toggleBtn.Position = UDim2.new(0, 170, 0, posY + 2)
 	toggleBtn.BorderColor3 = Color3.fromRGB(255, 255, 255)
 	toggleBtn.BorderSizePixel = 2
-	togg
+	toggleBtn.Text = ""
+	toggleBtn.AutoButtonColor = false
+	toggleBtn.Parent = parent
+
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.new(0, 20, 0, 20)
+	circle.Position = UDim2.new(0, 3, 0, 2)
+	circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	circle.BorderSizePixel = 0
+	circle.Parent = toggleBtn
+
+	local enabled = false
+	local function updateColor()
+		toggleBtn.BackgroundColor3 = enabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+	end
+
+	updateColor()
+	toggleBtn.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		circle:TweenPosition(UDim2.new(0, enabled and 27 or 3, 0, 2), "Out", "Quad", 0.2, true)
+		updateColor()
+		callback(enabled)
+	end)
+end
+
+-- ESP System
+local ESPEnabled = false
+local function applyESP(player)
+	if player.Character and not player.Character:FindFirstChild("Highlight") then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "Highlight"
+		highlight.FillColor = Color3.fromRGB(0, 255, 0)
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Adornee = player.Character
+		highlight.Parent = player.Character
+	end
+end
+
+local function removeESP(player)
+	if player.Character and player.Character:FindFirstChild("Highlight") then
+		player.Character.Highlight:Destroy()
+	end
+end
+
+createToggle(tabs["ESP and Aimbot"].Content, "ESP", 10, function(enabled)
+	ESPEnabled = enabled
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			if ESPEnabled then
+				applyESP(player)
+			else
+				removeESP(player)
+			end
+		end
+	end
+end)
+
+Players.PlayerAdded:Connect(function(p)
+	p.CharacterAdded:Connect(function()
+		wait(1)
+		if ESPEnabled then applyESP(p) end
+	end)
+end)
+
+-- Aimbot System
+local AimbotEnabled = false
+createToggle(tabs["ESP and Aimbot"].Content, "Aimbot", 50, function(enabled)
+	AimbotEnabled = enabled
+end)
+
+RunService.RenderStepped:Connect(function()
+	if AimbotEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+		local closest, dist = nil, math.huge
+		local myPos = LocalPlayer.Character.Head.Position
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+				local targetPos = player.Character.Head.Position
+				local d = (myPos - targetPos).Magnitude
+				if d < dist then
+					dist = d
+					closest = player
+				end
+			end
+		end
+		if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+			local cam = workspace.CurrentCamera
+			cam.CFrame = CFrame.new(cam.CFrame.Position, closest.Character.Head.Position)
+		end
+	end
+end)
